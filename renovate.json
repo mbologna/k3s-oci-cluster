@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "regexManagers": [
+    {
+      "description": "cert-manager release",
+      "fileMatch": ["^vars\\.tf$"],
+      "matchStrings": [
+        "variable \"certmanager_release\" \\{[\\s\\S]*?default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "cert-manager/cert-manager",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "Longhorn release",
+      "fileMatch": ["^vars\\.tf$"],
+      "matchStrings": [
+        "variable \"longhorn_release\" \\{[\\s\\S]*?default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "longhorn/longhorn",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "Argo CD release",
+      "fileMatch": ["^vars\\.tf$"],
+      "matchStrings": [
+        "variable \"argocd_release\" \\{[\\s\\S]*?default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "argoproj/argo-cd",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "Argo CD Image Updater release",
+      "fileMatch": ["^vars\\.tf$"],
+      "matchStrings": [
+        "variable \"argocd_image_updater_release\" \\{[\\s\\S]*?default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "argoproj-labs/argocd-image-updater",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "Istio release",
+      "fileMatch": ["^vars\\.tf$"],
+      "matchStrings": [
+        "variable \"istio_release\" \\{[\\s\\S]*?default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "istio/istio",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group all dependency updates into a single PR",
+      "matchManagers": ["regex"],
+      "groupName": "k3s-oci-cluster dependencies",
+      "groupSlug": "k3s-oci-cluster-deps"
+    }
+  ]
+}
