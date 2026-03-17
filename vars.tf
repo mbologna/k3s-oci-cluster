@@ -237,3 +237,9 @@ variable "expose_kubeapi" {
   type    = bool
   default = false
 }
+
+variable "install_unattended_upgrades" {
+  type        = bool
+  default     = true
+  description = "Install and configure unattended-upgrades on Ubuntu nodes (daily at 02:00)"
+}

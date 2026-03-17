@@ -35,6 +35,29 @@ do
 done
 }
 
+configure_unattended_upgrades() {
+  DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y unattended-upgrades
+
+  cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
+APT::Periodic::Enable "1";
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+  mkdir -p /etc/systemd/system/apt-daily-upgrade.timer.d
+  cat > /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf << 'EOF'
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 02:00
+RandomizedDelaySec=0
+Persistent=true
+EOF
+
+  systemctl daemon-reload
+}
+
 install_helm() {
   curl -fsSL -o /root/get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
   chmod 700 /root/get_helm.sh
@@ -593,6 +616,10 @@ if [[ "$operating_system" == "ubuntu" ]]; then
   echo "SystemMaxUse=100M" >> /etc/systemd/journald.conf
   echo "SystemMaxFileSize=100M" >> /etc/systemd/journald.conf
   systemctl restart systemd-journald
+
+%{ if install_unattended_upgrades }
+  configure_unattended_upgrades
+%{ endif }
 fi
 
 if [[ "$operating_system" == "oraclelinux" ]]; then

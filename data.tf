@@ -35,6 +35,7 @@ data "cloudinit_config" "k3s_server_tpl" {
       longhorn_release                  = var.longhorn_release,
       ingress_controller_http_nodeport  = var.ingress_controller_http_nodeport,
       ingress_controller_https_nodeport = var.ingress_controller_https_nodeport,
+      install_unattended_upgrades       = var.install_unattended_upgrades,
     })
   }
 }
@@ -57,6 +58,7 @@ data "cloudinit_config" "k3s_worker_tpl" {
       https_lb_port                     = var.https_lb_port,
       ingress_controller_http_nodeport  = var.ingress_controller_http_nodeport,
       ingress_controller_https_nodeport = var.ingress_controller_https_nodeport,
+      install_unattended_upgrades       = var.install_unattended_upgrades,
     })
   }
 }
