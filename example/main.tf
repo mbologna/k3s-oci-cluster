@@ -41,7 +41,7 @@ module "k3s_cluster" {
   k3s_worker_pool_size      = var.k3s_worker_pool_size
   k3s_extra_worker_node     = var.k3s_extra_worker_node
   expose_kubeapi            = var.expose_kubeapi
-  ingress_controller        = "nginx"
+  ingress_controller        = "traefik2"
   source                    = "../"
 }
 

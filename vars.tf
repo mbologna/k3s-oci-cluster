@@ -178,14 +178,9 @@ variable "ingress_controller" {
   type    = string
   default = "default"
   validation {
-    condition     = contains(["default", "nginx", "traefik2", "istio"], var.ingress_controller)
-    error_message = "Supported ingress controllers are: default, nginx, traefik2, istio"
+    condition     = contains(["default", "traefik2", "istio"], var.ingress_controller)
+    error_message = "Supported ingress controllers are: default, traefik2, istio"
   }
-}
-
-variable "nginx_ingress_release" {
-  type    = string
-  default = "v1.12.1"
 }
 
 variable "install_certmanager" {

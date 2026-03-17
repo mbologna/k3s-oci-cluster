@@ -30,7 +30,6 @@ Deploy a Kubernetes cluster for free, using K3s and Oracle [always free](https:/
   - [Notes about K3s](#notes-about-k3s)
   - [Infrastructure overview](#infrastructure-overview)
   - [Cluster resource deployed](#cluster-resource-deployed)
-    - [Nginx ingress controller](#nginx-ingress-controller)
     - [Cert-manager](#cert-manager)
   - [Deploy](#deploy)
       - [Public LB check](#public-lb-check)
@@ -158,7 +157,7 @@ module "k3s_cluster" {
   certmanager_email_address = var.certmanager_email_address
   k3s_server_pool_size      = var.k3s_server_pool_size
   k3s_worker_pool_size      = var.k3s_worker_pool_size
-  ingress_controller        = "nginx"
+  ingress_controller        = "traefik2"
   source                    = "github.com/garutilorenzo/k3s-oci-cluster"
 }
 
@@ -275,14 +274,13 @@ Once you have created the terraform.tfvars file edit the `main.tf` file (always 
 | `k3s_server_pool_size`  | `no`  | Number of k3s servers deployed. Default 1  |
 | `k3s_worker_pool_size`  | `no`  | Number of k3s workers deployed. Default 2  |
 | `k3s_extra_worker_node`  | `no`  | Boolean value, default true. Deploy the third worker nodes. The node will be deployed outside the worker instance pools. Using OCI always free account you can't create instance pools with more than two servers. This workaround solve this problem. |
-| `ingress_controller`  | `no`  | Define the ingress controller to use. Valid values are: [default](https://docs.k3s.io/networking#traefik-ingress-controller), [nginx](#nginx-ingress-controller), [traefik2](https://traefik.io/) or [istio](https://istio.io/latest/docs/tasks/traffic-management/ingress/kubernetes-ingress/) |
+| `ingress_controller`  | `no`  | Define the ingress controller to use. Valid values are: [default](https://docs.k3s.io/networking#traefik-ingress-controller), [traefik2](https://traefik.io/) or [istio](https://istio.io/latest/docs/tasks/traffic-management/ingress/kubernetes-ingress/) |
 | `disable_ingress`  | `no`  | Boolean value, disable all ingress controllers. Default: false |
-| `ingress_controller_http_nodeport`  | `no`  | NodePort where nginx ingress will listen for http traffic. Default 30080  |
-| `ingress_controller_https_nodeport`  | `no`  | NodePort where nginx ingress will listen for https traffic.  Default 30443 |
+| `ingress_controller_http_nodeport`  | `no`  | NodePort where the ingress controller will listen for http traffic. Default 30080  |
+| `ingress_controller_https_nodeport`  | `no`  | NodePort where the ingress controller will listen for https traffic. Default 30443 |
 | `install_longhorn`  | `no`  | Boolean value, install longhorn "Cloud native distributed block storage for Kubernetes". Default: true. |
 | `longhorn_release`  | `no`  | Longhorn release. Default: v1.8.1  |
 | `install_certmanager`  | `no`  | Boolean value, install [cert manager](https://cert-manager.io/) "Cloud native certificate management". Default: true  |
-| `nginx_ingress_release`  | `no`  | Longhorn release. Default: v1.12.1  |
 | `certmanager_release`  | `no`  | Cert manager release. Default: v1.12.16  |
 | `certmanager_email_address`  | `no`  | Email address used for signing https certificates. Default: changeme@example.com  |
 | `install_argocd`  | `no`  | Boolean value, install [Argo CD](https://argo-cd.readthedocs.io/en/stable/) "a declarative, GitOps continuous delivery tool for Kubernetes.". Default: true  |
@@ -357,8 +355,7 @@ In this setup we use two LB, one internal LB and one public LB (Layer 7). In ord
 
 In this environment the High Availability of the K3s cluster is provided using the Embedded DB. More details [here](https://rancher.com/docs/k3s/latest/en/installation/ha-embedded/)
 
-The default installation of K3s install [Traefik](https://docs.k3s.io/networking#traefik-ingress-controller) as ingress the controller. In this environment Traefik is replaced by [Nginx ingress controller](https://kubernetes.github.io/ingress-nginx/). To install Traefik as the ingress controller set the variable `ingress_controller` to `default`.
-For more details on Nginx ingress controller see the [Nginx ingress controller](#nginxingress-controller) section.
+The default installation of K3s installs [Traefik](https://docs.k3s.io/networking#traefik-ingress-controller) as ingress controller. You can also deploy [Traefik v2](https://traefik.io/) via Helm or [Istio](https://istio.io/latest/docs/tasks/traffic-management/ingress/kubernetes-ingress/) by setting the `ingress_controller` variable accordingly.
 
 ## Infrastructure overview
 
@@ -385,76 +382,9 @@ The other resources created by terraform are:
 
 This setup will automatically install [longhorn](https://longhorn.io/). Longhorn is a *Cloud native distributed block storage for Kubernetes*. To disable the longhorn deployment set `install_longhorn` variable to `false`.
 
-### Nginx ingress controller
-
-In this environment [Nginx ingress controller](https://kubernetes.github.io/ingress-nginx/) is used instead of the standard [Traefik](https://docs.k3s.io/networking#traefik-ingress-controller) ingress controller.
-
-The installation is the [bare metal](https://kubernetes.github.io/ingress-nginx/deploy/#bare-metal-clusters) installation, the ingress controller then is exposed via a NodePort Service.
-
-```yaml
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ingress-nginx-controller-loadbalancer
-  namespace: ingress-nginx
-spec:
-  selector:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/name: ingress-nginx
-  ports:
-    - name: http
-      port: 80
-      protocol: TCP
-      targetPort: 80
-      nodePort: ${ingress_controller_http_nodeport} # default to 30080
-    - name: https
-      port: 443
-      protocol: TCP
-      targetPort: 443
-      nodePort: ${ingress_controller_https_nodeport} # default to 30443
-  type: NodePort
-```
-
-To get the real ip address of the clients using a public L4 load balancer we need to use the proxy protocol feature of nginx ingress controller:
-
-```yaml
----
-apiVersion: v1
-data:
-  allow-snippet-annotations: "true"
-  enable-real-ip: "true"
-  proxy-real-ip-cidr: "0.0.0.0/0"
-  proxy-body-size: "20m"
-  use-proxy-protocol: "true"
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
-    app.kubernetes.io/version: 1.1.1
-    helm.sh/chart: ingress-nginx-4.0.16
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-```
-
-**NOTE** to use nginx ingress controller with the proxy protocol enabled, an external nginx instance is used as proxy (since OCI LB doesn't support proxy protocol at the moment). Nginx will be installed on each worker node and the configuation of nginx will:
-
-* listen in proxy protocol mode
-* forward the traffic from port `80` to `ingress_controller_http_nodeport` (default to `30080`) on any server of the cluster
-* forward the traffic from port `443` to `ingress_controller_https_nodeport` (default to `30443`) on any server of the cluster
-
-This is the final result:
-
-Client -> Public L4 LB -> nginx proxy (with proxy protocol enabled) -> nginx ingress (with proxy protocol enabled) -> k3s service -> pod(s)
-
 ### Cert-manager
 
-[cert-manager](https://cert-manager.io/docs/) is used to issue certificates from a variety of supported source. To use cert-manager take a look at [nginx-ingress-cert-manager.yml](deployments/nginx/nginx-ingress-cert-manager.yml) and [nginx-configmap-cert-manager.yml](deployments/nginx/nginx-configmap-cert-manager.yml) example. To use cert-manager and get the certificate you **need** set on your DNS configuration the public ip address of the load balancer.
+[cert-manager](https://cert-manager.io/docs/) is used to issue certificates from a variety of supported sources. To use cert-manager take a look at [nginx-ingress-cert-manager.yml](deployments/nginx/nginx-ingress-cert-manager.yml) and [nginx-configmap-cert-manager.yml](deployments/nginx/nginx-configmap-cert-manager.yml) examples. To use cert-manager and get a certificate you **need** to set your DNS configuration to the public ip address of the load balancer.
 
 ## Deploy
 
@@ -581,7 +511,7 @@ inst-lkvem-k3s-workers   Ready    <none>                      5m35s   v1.22.6+k3
 
 #### Public LB check
 
-We can now test the public load balancer, nginx ingress controller and the security list ingress rules. On your local PC run:
+We can now test the public load balancer, ingress controller and the security list ingress rules. On your local PC run:
 
 ```
 curl -v http://<PUBLIC_LB_IP>

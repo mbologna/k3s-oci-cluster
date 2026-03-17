@@ -446,66 +446,9 @@ ports:
 EOF
 }
 
-render_nginx_config(){
-cat << 'EOF' > "$NGINX_RESOURCES_FILE"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ingress-nginx-controller-loadbalancer
-  namespace: ingress-nginx
-spec:
-  selector:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/name: ingress-nginx
-  ports:
-    - name: http
-      port: 80
-      protocol: TCP
-      targetPort: 80
-      nodePort: ${ingress_controller_http_nodeport}
-    - name: https
-      port: 443
-      protocol: TCP
-      targetPort: 443
-      nodePort: ${ingress_controller_https_nodeport}
-  type: NodePort
----
-apiVersion: v1
-data:
-  allow-snippet-annotations: "true"
-  enable-real-ip: "true"
-  proxy-real-ip-cidr: "0.0.0.0/0"
-  proxy-body-size: "20m"
-  use-proxy-protocol: "true"
-kind: ConfigMap
-metadata:
-  labels:
-    app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
-    app.kubernetes.io/version: 1.1.1
-    helm.sh/chart: ingress-nginx-4.0.16
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-EOF
-}
-
-install_and_configure_nginx(){
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-${nginx_ingress_release}/deploy/static/provider/baremetal/deploy.yaml
-  NGINX_RESOURCES_FILE=/root/nginx-ingress-resources.yaml
-  render_nginx_config
-  kubectl apply -f $NGINX_RESOURCES_FILE
-}
-
 install_ingress(){
   INGRESS_CONTROLLER=$1
-  if [[ "$INGRESS_CONTROLLER" == "nginx" ]]; then
-    install_and_configure_nginx
-  elif [[ "$INGRESS_CONTROLLER" == "traefik2" ]]; then
+  if [[ "$INGRESS_CONTROLLER" == "traefik2" ]]; then
     install_and_configure_traefik2
   elif [[ "$INGRESS_CONTROLLER" == "istio" ]]; then
     install_and_configure_istio
@@ -535,7 +478,7 @@ spec:
    solvers:
    - http01:
        ingress:
-         class:  nginx
+         class: traefik
 EOF
 }
 
@@ -560,7 +503,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: nginx
+          class: traefik
 EOF
 }
 
