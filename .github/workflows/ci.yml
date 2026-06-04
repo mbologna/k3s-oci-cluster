@@ -11,30 +11,7 @@ on:
       - master
 
 jobs:
-  validate:
-    name: Validate
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./example
-    steps:
-      - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Run a Terraform init
-        uses: docker://hashicorp/terraform:light
-        with:
-          entrypoint: terraform
-          args: init
-
-      - name: Run a Terraform validate
-        uses: docker://hashicorp/terraform:light
-        with:
-          entrypoint: terraform
-          args: validate
-
-      - name: Run a Terraform fmt
-        uses: docker://hashicorp/terraform:light
-        with:
-          entrypoint: terraform
-          args: fmt  --recursive -check=true --diff ../
+  terraform:
+    uses: mbologna/.github/.github/workflows/terraform-ci.yml@4df74894bb7396d6abbf3baf4bcdf8ec9b9bed39 # main
+    with:
+      working_dir: ./example
